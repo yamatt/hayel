@@ -10,11 +10,6 @@ builds:
     binary: hayel-server
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
-  - id: hayel-config
-    main: ./cmd/hayel-config
-    binary: hayel-config
-    goos: [linux, darwin, windows]
-    goarch: [amd64, arm64]
 
 archives:
   - formats: [tar.gz]
