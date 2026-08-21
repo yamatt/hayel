@@ -16,7 +16,7 @@ RUN go build \
     -o /out/hayel-server \
     ./cmd/hayel-server
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates git \
     && addgroup -S hayel \
