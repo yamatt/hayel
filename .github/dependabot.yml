@@ -4,16 +4,31 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+    assignees:
+      - yamatt
+    labels:
+      - "dependabot"
 
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    assignees:
+      - yamatt
+    labels:
+      - "dependabot"
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    assignees:
+      - yamatt
+    labels:
+      - "dependabot"
