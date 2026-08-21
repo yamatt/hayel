@@ -5,6 +5,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "**.go"
+      - "**.mod"
+      - "**.sum"
+      - "cmd/**"
+      - "internal/**"
+      - ".github/workflows/fly-deploy.yml"
 
 jobs:
   deploy:
