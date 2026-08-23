@@ -96,15 +96,24 @@ func (h *gitRepositoryHandler) listRepositories(w http.ResponseWriter) {
 func (h *gitRepositoryHandler) repositories() ([]string, error) {
 	repositories := make([]string, 0)
 	err := filepath.WalkDir(h.root, func(current string, entry fs.DirEntry, err error) error {
+		// Handle permission errors or missing path errors gracefully
 		if err != nil {
+			if errors.Is(err, fs.ErrPermission) {
+				if entry != nil && entry.IsDir() {
+					return fs.SkipDir // Skip unreadable directories like lost+found
+				}
+				return nil // Skip unreadable files
+			}
 			if errors.Is(err, fs.ErrNotExist) {
 				return nil
 			}
-			return err
+			return err // Surface genuine system errors
 		}
+
 		if !entry.IsDir() || current == h.root {
 			return nil
 		}
+
 		if isBareRepository(current) {
 			relative, err := filepath.Rel(h.root, current)
 			if err != nil {
