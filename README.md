@@ -2,9 +2,15 @@
 
 Running your own single-user, serverless Git server focused on HTTPS and OIDC authentication.
 
-## Commands
+It authenticates requests with OIDC and invokes Git's built-in `git-http-backend` to manage on-disk repositories over HTTP.
 
-- `hayel-server` authenticates requests with OIDC and invokes Git's built-in `git-http-backend` for local repositories.
+Any user successfully authenticated by the configured OIDC provider is authorized to use the server. Hayel does not maintain a separate local user allowlist.
+
+Repositories are addressed by paths such as `/group/repo-name`. A bare repository is created automatically when the first push is received at that path. An authenticated `DELETE /group/repo-name` removes the repository and returns `204 No Content`.
+
+An authenticated `GET /` returns JSON containing all repositories, for example `{"repositories":["group/repo-name"]}`.
+
+The current configuration stores sessions in memory, so if the server restarts, it will have to re-verify the user, which can be slow.
 
 ## Running the server
 
@@ -13,6 +19,8 @@ Create or mount a directory containing bare repositories, then run:
 ```text
 go run ./cmd/hayel-server
 ```
+
+### Configuration
 
 The server accepts configuration from a TOML file, `HAYEL_*` environment variables, or command-line flags. Sources are applied in this order, so later sources override earlier ones: defaults, TOML file, environment variables, then flags. Set `HAYEL_CONFIG` or pass `--config` to select a TOML file.
 
@@ -38,17 +46,13 @@ The corresponding environment variables and command-line flags are:
 | `HAYEL_OIDC_CLIENT_SECRET` / `--oidc-client-secret` | —               | OIDC client secret                                                           |
 | `HAYEL_OIDC_REDIRECT_URL` / `--oidc-redirect-url`   | —               | Registered callback URL, for example `https://git.example.com/auth/callback` |
 
-The current boilerplate stores sessions in memory, so restarting the server logs users out. Production hardening should add TLS, a durable session store, and CSRF protection for state-changing operations. Git's `git-http-backend` is executed locally for each request.
+## Configuring your local Git
 
-Any user successfully authenticated by the configured OIDC provider is authorized to use the server. Hayel does not maintain a separate local user allowlist.
+You need to add an OIDC app to your IdP. The app will need Public Clients and PKCE.
 
-Repositories are addressed by paths such as `/group/repo-name`. A bare repository is created automatically when the first push is received at that path. An authenticated `DELETE /group/repo-name` removes the repository and returns `204 No Content`.
+You will need the Client ID to configure Git.
 
-An authenticated `GET /` returns JSON containing all repositories, for example `{"repositories":["group/repo-name"]}`.
-
-## Configuring a local client
-
-You need to configure your IdP that supports OIDC to add Hayel, and have the Client ID to hand.
+Then:
 
 1. [You need git-credentials-oauth installed](https://github.com/hickford/git-credential-oauth).
 1. Configure as follows:
