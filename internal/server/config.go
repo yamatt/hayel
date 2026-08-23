@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// Config contains the runtime configuration for the Hayel gateway.
 type Config struct {
 	Listen         string `koanf:"listen"`
 	RepositoryRoot string `koanf:"repository_root"`
@@ -24,8 +23,6 @@ type Config struct {
 	OIDCRedirect   string `koanf:"oidc_redirect_url"`
 }
 
-// ConfigFromFlags loads configuration with this precedence, from lowest to highest:
-// defaults, TOML file, HAYEL_* environment variables, and command-line flags.
 func ConfigFromFlags() (Config, error) {
 	flags := pflag.NewFlagSet("hayel-server", pflag.ContinueOnError)
 	configPath := envOr("HAYEL_CONFIG", "")
@@ -41,40 +38,46 @@ func ConfigFromFlags() (Config, error) {
 	}
 
 	k := koanf.New(".")
+
+	// 1. Defaults
 	if err := k.Load(structs.Provider(structDefaults(), "koanf"), nil); err != nil {
 		return Config{}, fmt.Errorf("load default configuration: %w", err)
 	}
+
+	// 2. TOML File
 	if configPath != "" {
 		if err := k.Load(file.Provider(configPath), toml.Parser()); err != nil {
 			return Config{}, fmt.Errorf("load configuration file %q: %w", configPath, err)
 		}
 	}
+
+	// 3. Environment Variables (maps HAYEL_OIDC_ISSUER -> oidc_issuer)
 	if err := k.Load(env.Provider("HAYEL_", ".", func(key string) string {
 		return strings.ToLower(strings.TrimPrefix(key, "HAYEL_"))
 	}), nil); err != nil {
 		return Config{}, fmt.Errorf("load environment configuration: %w", err)
 	}
-	if err := k.Load(posflag.Provider(flags, "", k), nil); err != nil {
-		return Config{}, fmt.Errorf("load command-line configuration: %w", err)
-	}
-	for _, key := range []string{
-		"repository-root",
-		"oidc-issuer",
-		"oidc-client-id",
-		"oidc-client-secret",
-		"oidc-redirect-url",
-	} {
-		if k.Exists(key) {
-			if err := k.Set(strings.ReplaceAll(key, "-", "_"), k.Get(key)); err != nil {
-				return Config{}, fmt.Errorf("normalize command-line configuration: %w", err)
-			}
+
+	// 4. Command-Line Flags (ONLY load flags that were EXPLICITLY set on the CLI)
+	// Passing a key-transformation function normalizes "oidc-issuer" -> "oidc_issuer"
+	if err := k.Load(posflag.ProviderWithValue(flags, ".", k, func(key string, value string) (string, interface{}) {
+		// Convert hyphens to underscores so flags match struct tags (e.g. oidc-issuer -> oidc_issuer)
+		normalKey := strings.ReplaceAll(key, "-", "_")
+
+		// If flag wasn't explicitly changed on CLI, don't return it so it doesn't overwrite ENV vars!
+		if !flags.Changed(key) {
+			return "", nil
 		}
+		return normalKey, value
+	}), nil); err != nil {
+		return Config{}, fmt.Errorf("load command-line configuration: %w", err)
 	}
 
 	var cfg Config
 	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "koanf", FlatPaths: true}); err != nil {
 		return Config{}, fmt.Errorf("decode configuration: %w", err)
 	}
+
 	return cfg, nil
 }
 
@@ -82,9 +85,10 @@ func structDefaults() Config {
 	return Config{Listen: ":8080", RepositoryRoot: "/repositories"}
 }
 
+// Relaxed validation: ONLY require Issuer for git-credential-oauth JWT verification
 func (c Config) Validate() error {
-	if c.OIDCIssuer == "" || c.OIDCClientID == "" || c.OIDCSecret == "" || c.OIDCRedirect == "" {
-		return errIncompleteOIDCConfig
+	if c.OIDCIssuer == "" {
+		return fmt.Errorf("OIDC configuration is incomplete: HAYEL_OIDC_ISSUER is required")
 	}
 	return nil
 }
