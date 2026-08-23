@@ -36,8 +36,17 @@ func (a *authenticator) login(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, "could not create login state", http.StatusInternalServerError, err)
 		return
 	}
+
+	// 1. Generate PKCE code verifier
+	verifier := oauth2.GenerateVerifier()
+
+	// 2. Set cookies for both OAuth state AND PKCE verifier
 	http.SetCookie(w, &http.Cookie{Name: "hayel_oauth_state", Value: state, Path: "/auth", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode, MaxAge: 600})
-	http.Redirect(w, r, a.oauth.AuthCodeURL(state), http.StatusFound)
+	http.SetCookie(w, &http.Cookie{Name: "hayel_pkce_verifier", Value: verifier, Path: "/auth", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode, MaxAge: 600})
+
+	// 3. Generate Auth URL using S256 challenge option
+	authURL := a.oauth.AuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
+	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
 func (a *authenticator) callback(w http.ResponseWriter, r *http.Request) {
@@ -46,28 +55,43 @@ func (a *authenticator) callback(w http.ResponseWriter, r *http.Request) {
 		a.fail(w, "invalid OAuth state", http.StatusBadRequest, err)
 		return
 	}
-	token, err := a.oauth.Exchange(r.Context(), r.URL.Query().Get("code"))
+
+	// Read PKCE verifier from cookie
+	verifierCookie, err := r.Cookie("hayel_pkce_verifier")
+	if err != nil || verifierCookie.Value == "" {
+		a.fail(w, "missing PKCE verifier cookie", http.StatusBadRequest, err)
+		return
+	}
+
+	// Clear temporary state and verifier cookies
+	http.SetCookie(w, &http.Cookie{Name: "hayel_oauth_state", Path: "/auth", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "hayel_pkce_verifier", Path: "/auth", MaxAge: -1})
+
+	// Exchange authorization code using the VerifierOption
+	token, err := a.oauth.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(verifierCookie.Value))
 	if err != nil {
 		a.fail(w, "could not exchange authorization code", http.StatusUnauthorized, err)
 		return
 	}
+
 	idTokenValue, ok := token.Extra("id_token").(string)
 	if !ok || idTokenValue == "" {
 		a.fail(w, "OIDC provider did not return an ID token", http.StatusUnauthorized, nil)
 		return
 	}
+
 	idToken, err := a.verifier.Verify(r.Context(), idTokenValue)
 	if err != nil {
 		a.fail(w, "could not verify ID token", http.StatusUnauthorized, err)
 		return
 	}
-	// Any identity successfully verified by the configured OIDC provider is
-	// authorized. There is intentionally no second, local user allowlist.
+
 	session, err := randomToken()
 	if err != nil {
 		a.fail(w, "could not create session", http.StatusInternalServerError, err)
 		return
 	}
+
 	a.store.put(session, idToken.Subject)
 	http.SetCookie(w, &http.Cookie{Name: "hayel_session", Value: session, Path: "/", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode, MaxAge: 12 * 60 * 60})
 	http.Redirect(w, r, "/", http.StatusFound)
