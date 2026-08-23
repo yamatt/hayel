@@ -12,6 +12,7 @@ on:
       - "cmd/**"
       - "internal/**"
       - ".github/workflows/fly-deploy.yml"
+      - "fly.toml"
 
 permissions:
   contents: read
