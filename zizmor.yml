@@ -1,0 +1,4 @@
+rules:
+  template-injection:
+    ignore:
+      - auto-merge.yml # ignored as the url comes from GitHub
