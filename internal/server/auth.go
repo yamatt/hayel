@@ -107,16 +107,37 @@ func (a *authenticator) logout(w http.ResponseWriter, r *http.Request) {
 
 func (a *authenticator) requireSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("hayel_session")
-		if err != nil || !a.store.valid(cookie.Value) {
-			if strings.HasPrefix(r.Header.Get("Accept"), "text/html") {
-				http.Redirect(w, r, "/auth/login", http.StatusFound)
-				return
+		// 1. Check for Git HTTP CLI Authorization header (Basic oauth2:<token> or Bearer <token>)
+		if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+			tokenString := ""
+			if username, password, ok := r.BasicAuth(); ok && username == "oauth2" {
+				tokenString = password
+			} else if strings.HasPrefix(authHeader, "Bearer ") {
+				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
 			}
-			http.Error(w, "authentication required", http.StatusUnauthorized)
+
+			if tokenString != "" {
+				// Verify the JWT token against Pocket ID keys
+				if _, err := a.verifier.Verify(r.Context(), tokenString); err == nil {
+					next.ServeHTTP(w, r)
+					return
+				}
+				a.logger.Debug("invalid bearer token provided", "remote", r.RemoteAddr)
+			}
+		}
+
+		// 2. Check for Browser Session Cookie
+		if cookie, err := r.Cookie("hayel_session"); err == nil && a.store.valid(cookie.Value) {
+			next.ServeHTTP(w, r)
 			return
 		}
-		next.ServeHTTP(w, r)
+
+		// 3. Fallback: Redirect browser or return 401 for CLI
+		if strings.HasPrefix(r.Header.Get("Accept"), "text/html") {
+			http.Redirect(w, r, "/auth/login", http.StatusFound)
+			return
+		}
+		http.Error(w, "authentication required", http.StatusUnauthorized)
 	})
 }
 
