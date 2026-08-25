@@ -26,7 +26,8 @@ func newGitHTTPHandler(repositoryRoot string, logger *slog.Logger) (http.Handler
 		Path: backendPath,
 		Env: []string{
 			"GIT_PROJECT_ROOT=" + repositoryRoot,
-			"GIT_HTTP_EXPORT_ALL=",
+			"GIT_HTTP_EXPORT_ALL=1",
+			"REMOTE_USER=oauth2",
 		},
 	}
 	return &gitRepositoryHandler{root: repositoryRoot, backend: backend, logger: logger}, nil
