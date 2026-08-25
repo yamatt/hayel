@@ -107,8 +107,11 @@ func (a *authenticator) logout(w http.ResponseWriter, r *http.Request) {
 
 func (a *authenticator) requireSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 1. Check for Git HTTP CLI Authorization header (Basic oauth2:<token> or Bearer <token>)
-		if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+		authHeader := r.Header.Get("Authorization")
+		acceptHeader := r.Header.Get("Accept")
+
+		// 1. Check for Git CLI HTTP Basic or Bearer Auth
+		if authHeader != "" {
 			tokenString := ""
 			if username, password, ok := r.BasicAuth(); ok && username == "oauth2" {
 				tokenString = password
@@ -117,26 +120,31 @@ func (a *authenticator) requireSession(next http.Handler) http.Handler {
 			}
 
 			if tokenString != "" {
-				// Verify the JWT token against Pocket ID keys
-				if _, err := a.verifier.Verify(r.Context(), tokenString); err == nil {
+				// Verify token against OIDC Provider
+				if idToken, err := a.verifier.Verify(r.Context(), tokenString); err == nil {
+					a.logger.Info("cli auth succeeded", "subject", idToken.Subject)
 					next.ServeHTTP(w, r)
 					return
+				} else {
+					a.logger.Error("jwt verification failed", "error", err, "remote", r.RemoteAddr)
 				}
-				a.logger.Debug("invalid bearer token provided", "remote", r.RemoteAddr)
 			}
 		}
 
-		// 2. Check for Browser Session Cookie
+		// 2. Check Browser Session Cookie
 		if cookie, err := r.Cookie("hayel_session"); err == nil && a.store.valid(cookie.Value) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		// 3. Fallback: Redirect browser or return 401 for CLI
-		if strings.HasPrefix(r.Header.Get("Accept"), "text/html") {
+		// 3. Fallback: Redirect browser, or send 401 WITH WWW-Authenticate header for CLI
+		if strings.HasPrefix(acceptHeader, "text/html") {
 			http.Redirect(w, r, "/auth/login", http.StatusFound)
 			return
 		}
+
+		// CRITICAL: Set this header BEFORE writing the 401 error so libcurl knows to send credentials
+		w.Header().Set("WWW-Authenticate", `Basic realm="Hayel"`)
 		http.Error(w, "authentication required", http.StatusUnauthorized)
 	})
 }
