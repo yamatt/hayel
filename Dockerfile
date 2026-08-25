@@ -18,7 +18,7 @@ RUN go build \
 
 FROM alpine:3.24
 
-RUN apk add --no-cache ca-certificates git \
+RUN apk add --no-cache ca-certificates git git-daemon \
     && addgroup -S hayel \
     && adduser -S -G hayel hayel \
     && mkdir /repositories \
