@@ -167,38 +167,41 @@ func isBareRepository(repository string) bool {
 }
 
 func repositoryPath(requestPath string) (repository string, endpoint bool, ok bool) {
+	// Guard against illegal characters or double slashes
 	if strings.Contains(requestPath, "\\") || strings.Contains(requestPath, "//") {
 		return "", false, false
 	}
-	for _, part := range strings.Split(strings.Trim(requestPath, "/"), "/") {
-		if part == "." || part == ".." || part == "" {
-			return "", false, false
-		}
-	}
+
 	clean := path.Clean("/" + requestPath)
 	trimmed := strings.Trim(clean, "/")
 	if trimmed == "" || trimmed == "." || strings.HasPrefix(trimmed, "../") || trimmed == ".." {
 		return "", false, false
 	}
-	parts := strings.Split(trimmed, "/")
-	for _, part := range parts {
-		if part == "." || part == ".." || part == "" {
-			return "", false, false
-		}
-	}
 
-	repositoryParts := parts
-	if len(parts) >= 3 && parts[len(parts)-2] == "info" && parts[len(parts)-1] == "refs" {
-		repositoryParts = parts[:len(parts)-2]
+	parts := strings.Split(trimmed, "/")
+
+	// Handle standard Git endpoints (/repo/info/refs or /repo/git-receive-pack)
+	if len(parts) == 3 && parts[1] == "info" && parts[2] == "refs" {
+		repository = parts[0]
 		endpoint = true
-	} else if len(parts) >= 3 && (parts[len(parts)-1] == "git-upload-pack" || parts[len(parts)-1] == "git-receive-pack") {
-		repositoryParts = parts[:len(parts)-1]
+	} else if len(parts) == 2 && (parts[1] == "git-upload-pack" || parts[1] == "git-receive-pack") {
+		repository = parts[0]
 		endpoint = true
-	}
-	if len(repositoryParts) < 2 {
+	} else if len(parts) == 1 {
+		// Pure repository root target (e.g., DELETE /hayel)
+		repository = parts[0]
+		endpoint = false
+	} else {
+		// Enforce v1 restriction: reject paths deeper than 1 level (e.g., /org/repo)
 		return "", false, false
 	}
-	return strings.Join(repositoryParts, "/"), endpoint, true
+
+	// Final check on the repository name segment itself
+	if repository == "" || repository == "." || repository == ".." {
+		return "", false, false
+	}
+
+	return repository, endpoint, true
 }
 
 func shouldCreateRepository(r *http.Request, endpoint bool) bool {
