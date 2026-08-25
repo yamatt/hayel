@@ -30,11 +30,11 @@ func TestRepositoryPath(t *testing.T) {
 		{name: "double slash", request: "//repo-name", valid: false},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			repo, endpoint, valid := repositoryPath(tt.request)
-			if repo != tt.repo || endpoint != tt.endpoint || valid != tt.valid {
-				t.Fatalf("repositoryPath(%q) = (%q, %t, %t), want (%q, %t, %t)", tt.request, repo, endpoint, valid, tt.repo, tt.endpoint, tt.valid)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			repo, endpoint, valid := repositoryPath(test.request)
+			if repo != test.repo || endpoint != test.endpoint || valid != test.valid {
+				t.Fatalf("repositoryPath(%q) = (%q, %t, %t), want (%q, %t, %t)", test.request, repo, endpoint, valid, test.repo, test.endpoint, test.valid)
 			}
 		})
 	}
