@@ -10,13 +10,24 @@ func TestRepositoryPath(t *testing.T) {
 		endpoint bool
 		valid    bool
 	}{
-		{name: "repository", request: "/group/repo-name", repo: "group/repo-name", valid: true},
-		{name: "info refs", request: "/group/repo-name/info/refs", repo: "group/repo-name", endpoint: true, valid: true},
-		{name: "receive pack", request: "/group/repo-name/git-receive-pack", repo: "group/repo-name", endpoint: true, valid: true},
-		{name: "nested group", request: "/team/project/repo-name/info/refs", repo: "team/project/repo-name", endpoint: true, valid: true},
-		{name: "missing repository", request: "/group", valid: false},
-		{name: "parent traversal", request: "/group/../repo-name", valid: false},
-		{name: "backslash", request: "/group\\repo-name", valid: false},
+		// Valid v1 single-level paths
+		{name: "single level repository", request: "/repo-name", repo: "repo-name", endpoint: false, valid: true},
+		{name: "single level with .git", request: "/repo-name.git", repo: "repo-name.git", endpoint: false, valid: true},
+		{name: "info refs endpoint", request: "/repo-name/info/refs", repo: "repo-name", endpoint: true, valid: true},
+		{name: "receive pack endpoint", request: "/repo-name/git-receive-pack", repo: "repo-name", endpoint: true, valid: true},
+		{name: "upload pack endpoint", request: "/repo-name/git-upload-pack", repo: "repo-name", endpoint: true, valid: true},
+
+		// Multi-level paths disallowed in v1
+		{name: "group nested path disallowed", request: "/group/repo-name", valid: false},
+		{name: "group info refs disallowed", request: "/group/repo-name/info/refs", valid: false},
+		{name: "deeply nested group disallowed", request: "/team/project/repo-name/info/refs", valid: false},
+
+		// Invalid requests
+		{name: "root path", request: "/", valid: false},
+		{name: "parent traversal", request: "/../repo-name", valid: false},
+		{name: "dot component", request: "/./repo-name", valid: false},
+		{name: "backslash", request: "/repo\\name", valid: false},
+		{name: "double slash", request: "//repo-name", valid: false},
 	}
 
 	for _, tt := range tests {
