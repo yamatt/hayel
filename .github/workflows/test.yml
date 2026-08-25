@@ -11,6 +11,9 @@ on:
       - "cmd/**"
       - "internal/**"
       - ".github/workflows/test.yml"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".hadolint.yaml"
   pull_request:
     branches:
       - main
@@ -21,6 +24,9 @@ on:
       - "cmd/**"
       - "internal/**"
       - ".github/workflows/test.yml"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".hadolint.yaml"
 
 permissions:
   contents: read
