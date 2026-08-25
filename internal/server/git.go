@@ -174,7 +174,7 @@ func repositoryPath(requestPath string) (repository string, endpoint bool, ok bo
 
 	clean := path.Clean("/" + requestPath)
 	trimmed := strings.Trim(clean, "/")
-	if trimmed == "" || trimmed == "." || strings.HasPrefix(trimmed, "../") || trimmed == ".." {
+	if trimmed == "" || strings.Contains(trimmed, ".") {
 		return "", false, false
 	}
 
