@@ -56,6 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: Check Docker files with Hadolint
         uses: essentialkaos/hadolint-action@2ab1ea0c7dfc4674d5b4ee13eb8d6e64931652e8 # v1
         with:
