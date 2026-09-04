@@ -3,7 +3,6 @@
 [![Test](https://github.com/yamatt/hayel/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/yamatt/hayel/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/yamatt/hayel/graph/badge.svg)](https://codecov.io/gh/yamatt/hayel)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/yamatt/hayel)](https://github.com/yamatt/hayel/blob/main/go.mod)
-[![Go Report Card](https://goreportcard.com/badge/github.com/yamatt/hayel)](https://goreportcard.com/report/github.com/yamatt/hayel)
 [![License](https://img.shields.io/github/license/yamatt/hayel)](https://github.com/yamatt/hayel/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/yamatt/hayel)](https://github.com/yamatt/hayel/releases/latest)
 [![Docker Image](https://img.shields.io/badge/Docker-ghcr.io%2Fyamatt%2Fhayel-blue?logo=docker)](https://ghcr.io/yamatt/hayel)
