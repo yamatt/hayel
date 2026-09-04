@@ -36,7 +36,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           VERSION=${GITHUB_REF_NAME}
-          go build -ldflags="-s -w -X main.version=${VERSION}" -o hayel-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/hayel
+          go build -ldflags="-s -w -X main.version=${VERSION}" -o hayel-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/hayel-server
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
