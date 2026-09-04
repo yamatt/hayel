@@ -32,8 +32,8 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint
+  go-lint:
+    name: Go Lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -69,7 +69,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     needs:
-      - lint
+      - go-lint
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
