@@ -36,13 +36,13 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           VERSION=${GITHUB_REF_NAME}
-          go build -ldflags="-s -w -X main.version=${VERSION}" -o roar-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/roar
+          go build -ldflags="-s -w -X main.version=${VERSION}" -o hayel-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/hayel
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: roar-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: roar-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: hayel-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: hayel-${{ matrix.goos }}-${{ matrix.goarch }}
 
   release:
     name: Create Release
