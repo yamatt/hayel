@@ -19,14 +19,14 @@ RUN go build \
 FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates git git-daemon \
-    && addgroup -S hayel \
-    && adduser -S -G hayel hayel \
+    && addgroup -S -g 1000 hayel \
+    && adduser -S -G hayel -u 1000 hayel \
     && mkdir /repositories \
-    && chown hayel:hayel /repositories
+    && chown -R 1000:1000 /repositories
 
 COPY --from=build /out/hayel-server /usr/local/bin/hayel-server
 
-USER hayel
+USER 1000:1000
 VOLUME ["/repositories"]
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/hayel-server"]
