@@ -64,8 +64,8 @@ func (a *authenticator) callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clear temporary state and verifier cookies
-	http.SetCookie(w, &http.Cookie{Name: "hayel_oauth_state", Path: "/auth", MaxAge: -1})
-	http.SetCookie(w, &http.Cookie{Name: "hayel_pkce_verifier", Path: "/auth", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "hayel_oauth_state", Path: "/auth", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode, MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "hayel_pkce_verifier", Path: "/auth", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode, MaxAge: -1})
 
 	// Exchange authorization code using the VerifierOption
 	token, err := a.oauth.Exchange(r.Context(), r.URL.Query().Get("code"), oauth2.VerifierOption(verifierCookie.Value))
@@ -101,7 +101,7 @@ func (a *authenticator) logout(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := r.Cookie("hayel_session"); err == nil {
 		a.store.delete(cookie.Value)
 	}
-	http.SetCookie(w, &http.Cookie{Name: "hayel_session", Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{Name: "hayel_session", Path: "/", HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode, MaxAge: -1})
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
