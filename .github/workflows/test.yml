@@ -59,12 +59,10 @@ jobs:
         with:
           persist-credentials: false
       - name: Check Docker files with Hadolint
-        uses: essentialkaos/hadolint-action@2ab1ea0c7dfc4674d5b4ee13eb8d6e64931652e8 # v1
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
-          files: Dockerfile
+          dockerfile: Dockerfile
           format: tty
-          strict-labels: true
-          failure-threshold: warning
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -83,12 +81,12 @@ jobs:
       - name: Run tests
         run: go test -v -covermode=atomic -coverprofile=coverage.txt ./...
       - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a #v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage
           path: coverage.txt
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 #v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           files: ./coverage.txt
           token: ${{ secrets.CODECOV_TOKEN }}
