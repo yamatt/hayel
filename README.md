@@ -39,7 +39,7 @@ repository_root = "/repositories"
 oidc_issuer = "https://issuer.example.com"
 oidc_client_id = "hayel"
 oidc_client_secret = "change-me"
-oidc_redirect_url = "https://git.example.com/auth/callback"
+oidc_redirect_url = "https://git-server.example.com/auth/callback"
 ```
 
 The corresponding environment variables and command-line flags are:
@@ -48,10 +48,10 @@ The corresponding environment variables and command-line flags are:
 | --------------------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
 | `HAYEL_LISTEN` / `--listen`                         | `:8080`         | Address for the Hayel gateway                                                |
 | `HAYEL_REPOSITORY_ROOT` / `--repository-root`       | `/repositories` | Directory containing bare Git repositories                                   |
-| `HAYEL_OIDC_ISSUER` / `--oidc-issuer`               | —               | OIDC issuer URL                                                              |
-| `HAYEL_OIDC_CLIENT_ID` / `--oidc-client-id`         | —               | OIDC client ID                                                               |
-| `HAYEL_OIDC_CLIENT_SECRET` / `--oidc-client-secret` | —               | OIDC client secret                                                           |
-| `HAYEL_OIDC_REDIRECT_URL` / `--oidc-redirect-url`   | —               | Registered callback URL, for example `https://git.example.com/auth/callback` |
+| `HAYEL_OIDC_ISSUER` / `--oidc-issuer`               | N/a             | OIDC issuer URL                                                              |
+| `HAYEL_OIDC_CLIENT_ID` / `--oidc-client-id`         | N/a             | OIDC client ID                                                               |
+| `HAYEL_OIDC_CLIENT_SECRET` / `--oidc-client-secret` | N/a             | OIDC client secret                                                           |
+| `HAYEL_OIDC_REDIRECT_URL` / `--oidc-redirect-url`   | N/a             | Registered callback URL, for example `https://git.example.com/auth/callback` |
 
 ## Configuring your local Git to authenticate to Hayel
 
