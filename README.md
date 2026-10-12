@@ -72,9 +72,9 @@ git config --global credential.https://git-server.example.com.oauthAuthURL "http
 git config --global credential.https://git-server.example.com.oauthTokenURL "https://idp.exmaple.com/api/oidc/token"
 ```
 
-You should also configure Git to cache the tokens from your IdP
+You should also configure Git to cache the tokens from your IdP so you're not opening your browser to authenticate on every push.
 
 ```bash
-git config --global credential.https://git-server.example.com.helper "cache --timeout 21600"
+git config --global credential.https://git-server.example.com.helper "cache --timeout 28800" # in seconds (28800 is 8 hours)
 git config --global --add credential.https://git-server.example.com.helper oauth
 ```
