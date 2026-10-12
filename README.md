@@ -53,7 +53,7 @@ The corresponding environment variables and command-line flags are:
 | `HAYEL_OIDC_CLIENT_SECRET` / `--oidc-client-secret` | —               | OIDC client secret                                                           |
 | `HAYEL_OIDC_REDIRECT_URL` / `--oidc-redirect-url`   | —               | Registered callback URL, for example `https://git.example.com/auth/callback` |
 
-## Configuring your local Git
+## Configuring your local Git to authenticate to Hayel
 
 You need to add an OIDC app to your IdP. The app will need Public Clients and PKCE.
 
