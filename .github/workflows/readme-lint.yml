@@ -1,0 +1,32 @@
+name: README Lint
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - ".markdownlint.json"
+      - ".github/workflows/readme-lint.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - ".markdownlint.json"
+      - ".github/workflows/readme-lint.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  markdownlint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Lint README.md
+        run: npx --yes markdownlint-cli README.md --config .markdownlint.json
