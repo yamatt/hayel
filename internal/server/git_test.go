@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -113,6 +114,34 @@ func TestGitRepositoryHandlerCreatesAndDeletesRepositories(t *testing.T) {
 	}
 }
 
+func TestGitRepositoryHandlerUsesTemplateHooksWhenCreatingRepository(t *testing.T) {
+	root := t.TempDir()
+	templateRoot := filepath.Join(root, "template")
+	if err := os.MkdirAll(filepath.Join(templateRoot, "hooks"), 0o755); err != nil {
+		t.Fatalf("mkdir template hooks: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(templateRoot, "hooks", "pre-receive"), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write template hook: %v", err)
+	}
+
+	handler := &gitRepositoryHandler{
+		root:     root,
+		template: templateRoot,
+		logger:   slog.New(slog.NewTextHandler(io.Discard, nil)),
+		backend: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNoContent)
+		}),
+	}
+
+	repoPath := filepath.Join(root, "group", "repo-name")
+	if err := handler.createRepository(repoPath); err != nil {
+		t.Fatalf("createRepository returned error: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(repoPath, "hooks", "pre-receive")); err != nil {
+		t.Fatalf("template hook was not copied into repository: %v", err)
+	}
+}
+
 func createBareRepo(t *testing.T, repoPath string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(repoPath), 0o755); err != nil {
@@ -169,5 +198,61 @@ func TestRepositoryPathAllowsNestedGroups(t *testing.T) {
 		if !ok || repo != tc.want || !strings.Contains(tc.path, repo) {
 			t.Fatalf("repositoryPath(%q) = (%q, %v, %v), want repo %q", tc.path, repo, endpoint, ok, tc.want)
 		}
+	}
+}
+
+func TestHookDispatchScriptRunsMatchingHookFromArchivedRepo(t *testing.T) {
+	root := t.TempDir()
+	hookRepo := filepath.Join(root, "hooks-repo")
+	if err := os.MkdirAll(filepath.Join(hookRepo, "hooks"), 0o755); err != nil {
+		t.Fatalf("mkdir hook repo: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(hookRepo, "hooks", "pre-receive"), []byte("#!/bin/sh\nprintf '%s\\n' \"$HAYEL_HOOK_NAME\" > \"$HOOK_LOG\"\n"), 0o755); err != nil {
+		t.Fatalf("write hook script: %v", err)
+	}
+	if out, err := exec.Command("git", "-C", hookRepo, "init").CombinedOutput(); err != nil {
+		t.Fatalf("git init hook repo: %v\n%s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", hookRepo, "config", "user.name", "Test User").CombinedOutput(); err != nil {
+		t.Fatalf("git config user.name: %v\n%s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", hookRepo, "config", "user.email", "test@example.com").CombinedOutput(); err != nil {
+		t.Fatalf("git config user.email: %v\n%s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", hookRepo, "add", "hooks/pre-receive").CombinedOutput(); err != nil {
+		t.Fatalf("git add hook: %v\n%s", err, out)
+	}
+	if out, err := exec.Command("git", "-C", hookRepo, "commit", "-m", "add hook").CombinedOutput(); err != nil {
+		t.Fatalf("git commit hook: %v\n%s", err, out)
+	}
+
+	moduleRoot, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatalf("get module root: %v", err)
+	}
+	dispatchPath := filepath.Join(root, "hayel-hook-dispatch")
+	buildCmd := exec.Command("go", "build", "-o", dispatchPath, "./cmd/hayel-hook-dispatch")
+	buildCmd.Dir = moduleRoot
+	if out, err := buildCmd.CombinedOutput(); err != nil {
+		t.Fatalf("build hook dispatcher: %v\n%s", err, out)
+	}
+
+	symlinkPath := filepath.Join(root, "pre-receive")
+	if err := os.Symlink(dispatchPath, symlinkPath); err != nil {
+		t.Fatalf("symlink dispatcher: %v", err)
+	}
+
+	logPath := filepath.Join(root, "hook-output.txt")
+	cmd := exec.Command(symlinkPath)
+	cmd.Env = append(os.Environ(), "HAYEL_HOOK_REPO_DIR="+hookRepo, "HOOK_LOG="+logPath)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("dispatch hook failed: %v\n%s", err, out)
+	}
+	contents, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read hook output: %v", err)
+	}
+	if string(contents) != "pre-receive\n" {
+		t.Fatalf("hook output = %q, want %q", string(contents), "pre-receive\n")
 	}
 }

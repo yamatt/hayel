@@ -23,6 +23,10 @@ func TestConfigValidateAndEnvOr(t *testing.T) {
 	if err := cfg.Validate(); err != nil {
 		t.Fatalf("expected validation to pass with issuer set: %v", err)
 	}
+
+	if cfg.TemplateDirectory != "" {
+		t.Fatalf("TemplateDirectory = %q, want empty string", cfg.TemplateDirectory)
+	}
 }
 
 func TestConfigFromFlagsUsesEnvAndFlags(t *testing.T) {
@@ -31,11 +35,12 @@ func TestConfigFromFlagsUsesEnvAndFlags(t *testing.T) {
 
 	t.Setenv("HAYEL_LISTEN", ":9090")
 	t.Setenv("HAYEL_REPOSITORY_ROOT", "/tmp/repos")
+	t.Setenv("HAYEL_TEMPLATE_DIRECTORY", "/tmp/template")
 	t.Setenv("HAYEL_OIDC_ISSUER", "https://issuer.example.com")
 	t.Setenv("HAYEL_OIDC_CLIENT_ID", "env-client")
 	t.Setenv("HAYEL_OIDC_CLIENT_SECRET", "env-secret")
 	t.Setenv("HAYEL_OIDC_REDIRECT_URL", "https://git.example.com/auth/callback")
-	os.Args = []string{"hayel-server", "--listen=:7070", "--repository-root=/tmp/flags"}
+	os.Args = []string{"hayel-server", "--listen=:7070", "--repository-root=/tmp/flags", "--template-directory=/tmp/flags-template"}
 
 	cfg, err := ConfigFromFlags()
 	if err != nil {
@@ -46,6 +51,9 @@ func TestConfigFromFlagsUsesEnvAndFlags(t *testing.T) {
 	}
 	if cfg.RepositoryRoot != "/tmp/flags" {
 		t.Fatalf("RepositoryRoot = %q, want %q", cfg.RepositoryRoot, "/tmp/flags")
+	}
+	if cfg.TemplateDirectory != "/tmp/flags-template" {
+		t.Fatalf("TemplateDirectory = %q, want %q", cfg.TemplateDirectory, "/tmp/flags-template")
 	}
 	if cfg.OIDCIssuer != "https://issuer.example.com" {
 		t.Fatalf("OIDCIssuer = %q, want %q", cfg.OIDCIssuer, "https://issuer.example.com")

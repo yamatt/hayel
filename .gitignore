@@ -9,6 +9,7 @@
 *.dylib
 /hayel-server
 /hayel-config
+/hayel-hook-dispatch
 /bin/
 /dist/
 

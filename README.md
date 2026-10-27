@@ -36,6 +36,7 @@ Example `hayel.toml`:
 ```toml
 listen = ":8080"
 repository_root = "/repositories"
+template_directory = "/opt/hayel/template"
 oidc_issuer = "https://issuer.example.com"
 oidc_client_id = "hayel"
 oidc_client_secret = "change-me"
@@ -44,14 +45,78 @@ oidc_redirect_url = "https://git-server.example.com/auth/callback"
 
 The corresponding environment variables and command-line flags are:
 
-| Variable                                            | Default         | Description                                                                  |
-| --------------------------------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| `HAYEL_LISTEN` / `--listen`                         | `:8080`         | Address for the Hayel gateway                                                |
-| `HAYEL_REPOSITORY_ROOT` / `--repository-root`       | `/repositories` | Directory containing bare Git repositories                                   |
-| `HAYEL_OIDC_ISSUER` / `--oidc-issuer`               | N/a             | OIDC issuer URL                                                              |
-| `HAYEL_OIDC_CLIENT_ID` / `--oidc-client-id`         | N/a             | OIDC client ID                                                               |
-| `HAYEL_OIDC_CLIENT_SECRET` / `--oidc-client-secret` | N/a             | OIDC client secret                                                           |
-| `HAYEL_OIDC_REDIRECT_URL` / `--oidc-redirect-url`   | N/a             | Registered callback URL, for example `https://git.example.com/auth/callback` |
+- `HAYEL_LISTEN` / `--listen` (default `:8080`): Address for the Hayel gateway.
+- `HAYEL_REPOSITORY_ROOT` / `--repository-root` (default `/repositories`):
+  Directory containing bare Git repositories.
+- `HAYEL_TEMPLATE_DIRECTORY` / `--template-directory` (default blank/off):
+  Directory containing Git templates copied into each new repository. If unset, hook dispatch is disabled.
+- `HAYEL_OIDC_ISSUER` / `--oidc-issuer` (default N/a): OIDC issuer URL.
+- `HAYEL_OIDC_CLIENT_ID` / `--oidc-client-id` (default N/a): OIDC client ID.
+- `HAYEL_OIDC_CLIENT_SECRET` / `--oidc-client-secret` (default N/a):
+  OIDC client secret.
+- `HAYEL_OIDC_REDIRECT_URL` / `--oidc-redirect-url` (default N/a):
+  Registered callback URL, for example
+  `https://git.example.com/auth/callback`.
+
+### Hook dispatch templates
+
+It is possible to specify programs to run as a git hook on the server based on a repo.
+
+This would be useful if you want to setup a scalable CI pipeline.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as Git Client
+    participant Hayel as Hayel Server
+    participant Git as git-http-backend
+    participant Repo as Repo Directory
+    participant Tpl as Template Repo
+    participant Hook as Hooks in Repo Directory
+    participant Disp as hayel-hook-dispatch
+    participant HookRepo as Local Hook Repo
+
+    User->>Hayel: Push to /group/repo
+    Hayel->>Git: Serve git-receive-pack request
+
+    alt Repo does not exist
+        Hayel->>Repo: git init --bare --template <template_directory>
+        Hayel->>Tpl: Read template directory
+        Tpl-->>Repo: Populate hooks/ with symlinks to hayel-hook-dispatch
+    end
+
+    User->>Git: Receive pack and update refs
+    Git->>Repo: Updates
+    Git->>Hook:Runs
+    Hook->>Disp: Execute with original hook argv
+    Disp->>Disp: Read HAYEL_HOOK_REPO_DIR
+    Disp->>Disp: Create temporary directory
+    Disp->>HookRepo: Git archive hook repo to
+    Repo-->>HookRepo: Archive of repo contents
+    Disp->>HookRepo: Find and run hooks/<hook-name> from extracted repo
+    HookRepo-->>Disp: Exit code
+    Disp-->>Hook: Return exit code
+    Hook-->>Git: Hook pass/fail
+    Git-->>User: Push accepted or rejected
+```
+
+The base hooks come from a template directory that is used when creating a new repo. These base hooks are symlinks to the hook dispatcher.
+
+The dispatcher is provided an environment variable that tells it where the hook source repo is. The hook dispatcher archives that repository and runs the relevant hook program from the extracted snapshot.
+
+That way you can update the hook source repo to change the hooks for all repos.
+
+You need create the repo in Hayel that contains the hooks in the `hooks` directory and using the same name as the hook names.
+
+Once you have pushed that repo to Hayel you need to provide Hook Dispatch the hooks repo directory by setting `HAYEL_HOOK_REPO_DIR`.
+
+If you don't want to use this feature, leave `HAYEL_TEMPLATE_DIRECTORY`.
+
+If you set `HAYEL_HOOK_REPO_DIR` before you have created a hook repo, it will block all future pushes until it is unset.
+
+If `HAYEL_TEMPLATE_DIRECTORY` is unset when repos are pushed to Hayel, they will be missing the hooks and you will have to manually add them.
+
+Note the hooks can access anything on the server.
 
 ## Configuring your local Git to authenticate to Hayel
 

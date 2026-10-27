@@ -29,7 +29,7 @@ func New(ctx context.Context, cfg Config, logger *slog.Logger) (*Server, error) 
 	if err != nil {
 		return nil, fmt.Errorf("discover OIDC provider: %w", err)
 	}
-	gitHTTP, err := newGitHTTPHandler(cfg.RepositoryRoot, logger)
+	gitHTTP, err := newGitHTTPHandler(cfg.RepositoryRoot, cfg.TemplateDirectory, logger)
 	if err != nil {
 		return nil, fmt.Errorf("configure git HTTP backend: %w", err)
 	}

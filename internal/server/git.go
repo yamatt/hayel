@@ -16,7 +16,7 @@ import (
 )
 
 // newGitHTTPHandler wraps Git's built-in git-http-backend CGI program.
-func newGitHTTPHandler(repositoryRoot string, logger *slog.Logger) (http.Handler, error) {
+func newGitHTTPHandler(repositoryRoot, templateDirectory string, logger *slog.Logger) (http.Handler, error) {
 	output, err := exec.Command("git", "--exec-path").Output()
 	if err != nil {
 		return nil, fmt.Errorf("find Git exec path: %w", err)
@@ -30,13 +30,14 @@ func newGitHTTPHandler(repositoryRoot string, logger *slog.Logger) (http.Handler
 			"REMOTE_USER=oauth2",
 		},
 	}
-	return &gitRepositoryHandler{root: repositoryRoot, backend: backend, logger: logger}, nil
+	return &gitRepositoryHandler{root: repositoryRoot, template: templateDirectory, backend: backend, logger: logger}, nil
 }
 
 type gitRepositoryHandler struct {
-	root    string
-	backend http.Handler
-	logger  *slog.Logger
+	root     string
+	template string
+	backend  http.Handler
+	logger   *slog.Logger
 }
 
 func (h *gitRepositoryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +138,12 @@ func (h *gitRepositoryHandler) createRepository(repository string) error {
 	if err := os.MkdirAll(filepath.Dir(repository), 0o755); err != nil {
 		return err
 	}
-	return exec.Command("git", "init", "--bare", "--quiet", repository).Run()
+	args := []string{"init", "--bare", "--quiet"}
+	if h.template != "" {
+		args = append(args, "--template", h.template)
+	}
+	args = append(args, repository)
+	return exec.Command("git", args...).Run()
 }
 
 func (h *gitRepositoryHandler) deleteRepository(repository string) error {

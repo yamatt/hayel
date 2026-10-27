@@ -15,12 +15,13 @@ import (
 )
 
 type Config struct {
-	Listen         string `koanf:"listen"`
-	RepositoryRoot string `koanf:"repository_root"`
-	OIDCIssuer     string `koanf:"oidc_issuer"`
-	OIDCClientID   string `koanf:"oidc_client_id"`
-	OIDCSecret     string `koanf:"oidc_client_secret"`
-	OIDCRedirect   string `koanf:"oidc_redirect_url"`
+	Listen            string `koanf:"listen"`
+	RepositoryRoot    string `koanf:"repository_root"`
+	TemplateDirectory string `koanf:"template_directory"`
+	OIDCIssuer        string `koanf:"oidc_issuer"`
+	OIDCClientID      string `koanf:"oidc_client_id"`
+	OIDCSecret        string `koanf:"oidc_client_secret"`
+	OIDCRedirect      string `koanf:"oidc_redirect_url"`
 }
 
 func ConfigFromFlags() (Config, error) {
@@ -29,6 +30,7 @@ func ConfigFromFlags() (Config, error) {
 	flags.StringVar(&configPath, "config", configPath, "path to a TOML configuration file")
 	flags.String("listen", ":8080", "address to listen on")
 	flags.String("repository-root", "/repositories", "directory containing bare Git repositories")
+	flags.String("template-directory", "", "directory containing Git hook templates copied into new repositories")
 	flags.String("oidc-issuer", "", "OIDC issuer URL")
 	flags.String("oidc-client-id", "", "OIDC client ID")
 	flags.String("oidc-client-secret", "", "OIDC client secret")
@@ -89,6 +91,15 @@ func structDefaults() Config {
 func (c Config) Validate() error {
 	if c.OIDCIssuer == "" {
 		return fmt.Errorf("OIDC configuration is incomplete: HAYEL_OIDC_ISSUER is required")
+	}
+	if c.TemplateDirectory != "" {
+		info, err := os.Stat(c.TemplateDirectory)
+		if err != nil {
+			return fmt.Errorf("template directory %q is invalid: %w", c.TemplateDirectory, err)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("template directory %q is not a directory", c.TemplateDirectory)
+		}
 	}
 	return nil
 }
