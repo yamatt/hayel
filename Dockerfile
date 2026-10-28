@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.27.2-alpine AS build-server
+FROM golang:1.27.3-alpine AS build-server
 
 WORKDIR /src
 RUN apk add --no-cache ca-certificates
@@ -16,7 +16,7 @@ RUN go build \
     -o /out/hayel-server \
     ./cmd/hayel-server
 
-FROM golang:1.27.2-alpine AS build-hook-dispatch
+FROM golang:1.27.3-alpine AS build-hook-dispatch
 
 WORKDIR /src
 COPY go.mod go.sum ./
