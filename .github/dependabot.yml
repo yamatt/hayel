@@ -29,7 +29,8 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     labels:
-      - "dependabot"
+      - dependency
+      - docker
 
   - package-ecosystem: github-actions
     directory: /
