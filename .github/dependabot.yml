@@ -8,6 +8,10 @@ updates:
       default-days: 7
     assignees:
       - yamatt
+    groups:
+      minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
     labels:
       - "dependabot"
 
@@ -19,6 +23,10 @@ updates:
       default-days: 7
     assignees:
       - yamatt
+    groups:
+      minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
     labels:
       - "dependabot"
 
@@ -30,5 +38,9 @@ updates:
       default-days: 7
     assignees:
       - yamatt
+    groups:
+      minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
     labels:
       - "dependabot"
