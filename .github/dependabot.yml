@@ -13,7 +13,8 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     labels:
-      - "dependabot"
+      - dependency
+      - go
 
   - package-ecosystem: docker
     directory: /
@@ -43,4 +44,5 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     labels:
-      - "dependabot"
+      - dependency
+      - github-actions
