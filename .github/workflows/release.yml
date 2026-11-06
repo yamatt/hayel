@@ -34,8 +34,8 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
         run: |
-          VERSION=${GITHUB_REF_NAME}
           go build -ldflags="-s -w -X main.version=${VERSION}" -o hayel-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/hayel-server
 
       - name: Upload artifact
@@ -57,17 +57,6 @@ jobs:
           persist-credentials: false
           fetch-tags: true
 
-      - name: Get tag annotation
-        id: tag_info
-        run: |
-          TAG_NAME=${GITHUB_REF_NAME}
-          # Get the tag annotation message
-          TAG_MESSAGE=$(git for-each-ref "refs/tags/${TAG_NAME}" --format='%(contents:subject)')
-          if [ -z "$TAG_MESSAGE" ]; then
-            TAG_MESSAGE="${TAG_NAME}"
-          fi
-          echo "tag_message=${TAG_MESSAGE}" >> $GITHUB_OUTPUT
-
       - name: Download all artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -76,8 +65,13 @@ jobs:
       - name: Create Release with Generated Notes
         run: |
           chmod +x artifacts/*/*
-          gh release create '${{ github.ref_name }}' \
-            --title='${{ steps.tag_info.outputs.tag_message }}' \
+          TAG_NAME="$GITHUB_REF_NAME"
+          TAG_MESSAGE=$(git for-each-ref "refs/tags/${TAG_NAME}" --format='%(contents:subject)')
+          if [ -z "$TAG_MESSAGE" ]; then
+            TAG_MESSAGE="$TAG_NAME"
+          fi
+          gh release create "$TAG_NAME" \
+            --title="$TAG_MESSAGE" \
             --generate-release-notes \
             artifacts/*/*
         env:
