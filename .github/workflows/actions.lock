@@ -6,6 +6,8 @@ workflows:
     '.github/workflows/action-scan.yml':
         - 'actions/checkout@v7.0.1'
         - 'zizmorcore/zizmor-action@v0.8.1'
+    '.github/workflows/actions-lock-check.yml':
+        - 'actions/checkout@v7.0.1'
     '.github/workflows/auto-merge.yml':
         - 'dependabot/fetch-metadata@v3.1.0'
     '.github/workflows/fly-deploy.yml':
