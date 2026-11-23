@@ -14,11 +14,7 @@ on:
       - ".github/workflows/fly-deploy.yml"
       - "fly.toml"
       - "Dockerfile"
-  workflow_run:
-    workflows:
-      - Auto-merge
-    types:
-      - completed
+  workflow_dispatch:
 
 permissions:
   contents: read
